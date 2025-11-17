@@ -13,6 +13,8 @@ type Model struct {
 	session       int
 	phase         string // "work" or "break"
 	state         string // "running" or "prompt"
+	width         int
+	height        int
 	timer         *timer.PomoTimer
 }
 
