@@ -13,7 +13,7 @@ A terminal-based Pomodoro timer built in Go and a TUI built with [bubbletea](htt
 
 ## Installation
 
-Requires Go 1.21+ to be installed. Install it [here](https://go.dev/doc/install).
+Requires Go 1.23+ to be installed. Install it [here](https://go.dev/doc/install).
 
 ```bash
 go install github.com/aileks/pomodoro-timer/cmd/pomodoro@latest
