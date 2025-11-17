@@ -10,7 +10,7 @@ import (
 
 func sevenSegmentDisplay(digit rune) []string {
 	segments := map[rune][]string{
-		'0': {" _  ", "| | ", "|_| "},
+		'0': {" _  ", "| | ", "| | "},
 		'1': {"    ", "  | ", "  | "},
 		'2': {" _  ", " _| ", "|_  "},
 		'3': {" _  ", " _| ", " _| "},
@@ -42,9 +42,9 @@ func buildTimerDisplay(timeStr string, phase string) string {
 
 	var color string
 	if phase == "work" {
-		color = "1" // red
+		color = "#f3b327"
 	} else {
-		color = "2" // green
+		color = "#27b8f3"
 	}
 
 	return lipgloss.NewStyle().
@@ -68,12 +68,34 @@ func (m *Model) View() string {
 		total = int64(breakDur)
 	}
 
-	progress := int(float64(total-int64(m.timer.Remaining())) / float64(total) * 50)
-	bar := "[" + strings.Repeat("█", progress) + strings.Repeat("░", 50-progress) + "]"
+	elapsed := total - int64(m.timer.Remaining())
+	progressPercent := float64(elapsed) / float64(total)
+
+	barWidth := 50
+	filledWidth := int(float64(barWidth) * progressPercent)
+	var bar strings.Builder
+	bar.WriteString("[")
+
+	for i := 0; i < barWidth; i++ {
+		if i < filledWidth {
+			ratio := float64(i) / float64(barWidth)
+			r := int(255 * (1 - ratio))
+			g := 0
+			b := int(255 * ratio)
+			color := fmt.Sprintf("#%02X%02X%02X", r, g, b)
+			segment := lipgloss.NewStyle().
+				Foreground(lipgloss.Color(color)).
+				Render("█")
+			bar.WriteString(segment)
+		} else {
+			bar.WriteString("░")
+		}
+	}
+	bar.WriteString("]")
 
 	status := m.state
 	if status == "paused" {
-		status = "| [PAUSED]"
+		status = "[PAUSED]"
 	} else {
 		status = ""
 	}
@@ -85,11 +107,11 @@ func (m *Model) View() string {
 	var content string
 	if m.awaitingInput != "" {
 		prompt := fmt.Sprintf("Add more sessions? Current input: %s (press Enter to confirm)", m.awaitingInput)
-		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar + "\n\n" + prompt
+		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar.String() + "\n\n" + prompt
 	} else if m.state == "prompt" {
 		content = "All sessions complete!\n\nHow many additional sessions? (0 to quit, or enter a number):"
 	} else {
-		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar + "\n\n" + commands
+		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar.String() + "\n\n" + commands
 	}
 
 	return lipgloss.NewStyle().
