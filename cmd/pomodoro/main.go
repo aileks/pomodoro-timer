@@ -11,7 +11,7 @@ import (
 	"github.com/aileks/pomodoro-timer/pkg/timer"
 )
 
-func runPhase(duration time.Duration, label string, commandChan chan rune) {
+func runPhase(duration time.Duration, label string, commandChan chan rune) bool {
 	fmt.Println("Commands:")
 	fmt.Println("q: Quit | p: Pause")
 	fmt.Printf("\n%s\n", label)
@@ -31,7 +31,7 @@ func runPhase(duration time.Duration, label string, commandChan chan rune) {
 			fmt.Printf("\r[%s]", timer.FormatDuration(t.Remaining()))
 			if t.IsFinished() {
 				fmt.Println("\nTime's up!")
-				return
+				return false // goes to next work/break timer
 			}
 		case cmd := <-commandChan:
 			switch cmd {
@@ -43,7 +43,7 @@ func runPhase(duration time.Duration, label string, commandChan chan rune) {
 				fmt.Println("\nResumed")
 			case 'q':
 				fmt.Println("\nQuitting...")
-				return
+				return true // completely exits program
 			}
 		}
 	}
