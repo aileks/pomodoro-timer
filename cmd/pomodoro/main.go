@@ -1,12 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"time"
-
-	"golang.org/x/term"
 
 	"github.com/aileks/pomodoro-timer/pkg/timer"
 )
@@ -49,27 +48,20 @@ func runPhase(duration time.Duration, label string, commandChan chan rune) bool 
 	}
 }
 
-func listenForInput(commandChan chan rune) {
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return
-	}
-
-	defer func() {
-		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to restore terminal: %v\n", err)
-		}
-	}()
-
-	buf := make([]byte, 1)
+func listenForInput(commandChan chan rune, done chan struct{}) {
+	reader := bufio.NewReader(os.Stdin)
 	for {
-		if _, err := os.Stdin.Read(buf); err != nil {
+		select {
+		case <-done:
 			return
-		}
-
-		ch := rune(buf[0])
-		if ch == 'p' || ch == 'r' || ch == 'q' || ch == 'y' || ch == 'n' {
-			commandChan <- ch
+		default:
+			ch, _, err := reader.ReadRune()
+			if err != nil {
+				return
+			}
+			if ch == 'p' || ch == 'r' || ch == 'q' || ch == 'y' || ch == 'n' {
+				commandChan <- ch
+			}
 		}
 	}
 }
@@ -83,14 +75,17 @@ func main() {
 	breakDuration := time.Duration(*breakMin) * time.Minute
 
 	commandChan := make(chan rune)
-	go listenForInput(commandChan)
+	done := make(chan struct{})
+	go listenForInput(commandChan, done)
 
 	session := 1
 	for {
 		if runPhase(workDuration, fmt.Sprintf("Session %d: Work time!", session), commandChan) {
+			close(done)
 			return
 		}
 		if runPhase(breakDuration, fmt.Sprintf("Session %d: Break time!", session), commandChan) {
+			close(done)
 			return
 		}
 
@@ -102,6 +97,7 @@ func main() {
 				break
 			} else if cmd == 'n' {
 				fmt.Println("Done!")
+				close(done)
 				return
 			} else {
 				fmt.Print("Not a valid input. ")
