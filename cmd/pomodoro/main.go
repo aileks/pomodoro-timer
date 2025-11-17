@@ -11,8 +11,6 @@ import (
 )
 
 func runPhase(duration time.Duration, label string, commandChan chan rune) bool {
-	fmt.Println("Commands:")
-	fmt.Println("q: Quit | p: Pause")
 	fmt.Printf("\n%s\n", label)
 
 	t := timer.New(duration)
@@ -74,6 +72,11 @@ func main() {
 	workDuration := time.Duration(*workMin) * time.Minute
 	breakDuration := time.Duration(*breakMin) * time.Minute
 
+	// Print commands once
+	fmt.Println("Commands:")
+	fmt.Println("q: Quit | p: Pause | r: Resume")
+	fmt.Println()
+
 	commandChan := make(chan rune)
 	done := make(chan struct{})
 	go listenForInput(commandChan, done)
@@ -92,14 +95,15 @@ func main() {
 		fmt.Print("\nContinue? (y/n): ")
 		for {
 			cmd := <-commandChan
-			if cmd == 'y' {
+			switch cmd {
+			case 'y':
 				session++
 				break
-			} else if cmd == 'n' {
+			case 'n':
 				fmt.Println("Done!")
 				close(done)
 				return
-			} else {
+			default:
 				fmt.Print("Not a valid input. ")
 			}
 		}
