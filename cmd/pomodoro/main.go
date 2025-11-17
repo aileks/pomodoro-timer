@@ -1,13 +1,16 @@
+// A pomodoro CLI utility
 package main
 
 import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/aileks/pomodoro-timer/pkg/timer"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func runPhase(duration time.Duration, label string, commandChan chan rune) bool {
@@ -69,43 +72,16 @@ func main() {
 	breakMin := flag.Int("break", 5, "break duration in minutes")
 	flag.Parse()
 
-	workDuration := time.Duration(*workMin) * time.Minute
-	breakDuration := time.Duration(*breakMin) * time.Minute
+	m := Model{
+		workDuration:  time.Duration(*workMin) * time.Minute,
+		breakDuration: time.Duration(*breakMin) * time.Minute,
+		session:       1,
+		phase:         "work",
+		state:         "running",
+	}
 
-	// Print commands once
-	fmt.Println("Commands:")
-	fmt.Println("q: Quit | p: Pause | r: Resume")
-	fmt.Println()
-
-	commandChan := make(chan rune)
-	done := make(chan struct{})
-	go listenForInput(commandChan, done)
-
-	session := 1
-	for {
-		if runPhase(workDuration, fmt.Sprintf("Session %d: Work time!", session), commandChan) {
-			close(done)
-			return
-		}
-		if runPhase(breakDuration, fmt.Sprintf("Session %d: Break time!", session), commandChan) {
-			close(done)
-			return
-		}
-
-		fmt.Print("\nContinue? (y/n): ")
-		for {
-			cmd := <-commandChan
-			switch cmd {
-			case 'y':
-				session++
-				break
-			case 'n':
-				fmt.Println("Done!")
-				close(done)
-				return
-			default:
-				fmt.Print("Not a valid input. ")
-			}
-		}
+	p := tea.NewProgram(&m)
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
 	}
 }
