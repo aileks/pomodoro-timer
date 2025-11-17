@@ -70,14 +70,18 @@ func listenForInput(commandChan chan rune, done chan struct{}) {
 func main() {
 	workMin := flag.Int("work", 25, "work duration in minutes")
 	breakMin := flag.Int("break", 5, "break duration in minutes")
+	longBreakMin := flag.Int("long-break", 20, "long break duration in minutes")
+	sessions := flag.Int("sessions", 4, "number of sessions before exiting (0 for infinite)")
 	flag.Parse()
 
 	m := Model{
-		workDuration:  time.Duration(*workMin) * time.Minute,
-		breakDuration: time.Duration(*breakMin) * time.Minute,
-		session:       1,
-		phase:         "work",
-		state:         "running",
+		workDuration:      time.Duration(*workMin) * time.Minute,
+		breakDuration:     time.Duration(*breakMin) * time.Minute,
+		longBreakDuration: time.Duration(*longBreakMin) * time.Minute,
+		totalSessions:     *sessions,
+		session:           1,
+		phase:             "work",
+		state:             "running",
 	}
 
 	p := tea.NewProgram(&m)

@@ -11,10 +11,10 @@ import (
 func sevenSegmentDisplay(digit rune) []string {
 	segments := map[rune][]string{
 		'0': {" _  ", "| | ", "|_| "},
-		'1': {"   ", "  | ", "  | "},
+		'1': {"    ", "  | ", "  | "},
 		'2': {" _  ", " _| ", "|_  "},
 		'3': {" _  ", " _| ", " _| "},
-		'4': {"   ", "|_| ", "  | "},
+		'4': {"    ", "|_| ", "  | "},
 		'5': {" _  ", "|_  ", " _| "},
 		'6': {" _  ", "|_  ", "|_| "},
 		'7': {" _  ", "  | ", "  | "},
@@ -40,7 +40,6 @@ func buildTimerDisplay(timeStr string, phase string) string {
 
 	display := strings.Join(lines[:], "\n")
 
-	// Style based on phase
 	var color string
 	if phase == "work" {
 		color = "1" // red
@@ -62,7 +61,11 @@ func (m *Model) View() string {
 	if m.phase == "work" {
 		total = int64(m.workDuration)
 	} else {
-		total = int64(m.breakDuration)
+		breakDur := m.breakDuration
+		if m.cycleCount%4 == 0 {
+			breakDur = m.longBreakDuration
+		}
+		total = int64(breakDur)
 	}
 
 	progress := int(float64(total-int64(m.timer.Remaining())) / float64(total) * 50)
@@ -70,21 +73,25 @@ func (m *Model) View() string {
 
 	status := m.state
 	if status == "paused" {
-		status = "[PAUSED]"
+		status = "| [PAUSED]"
 	} else {
 		status = ""
 	}
 
-	header := fmt.Sprintf("Session %d: %s %s", m.session, strings.ToUpper(m.phase), status)
+	header := fmt.Sprintf("Session: %d/%d | %s %s", m.session, m.totalSessions, strings.ToUpper(m.phase), status)
 
 	commands := "q: Quit | p: Pause | r: Resume"
 
 	var content string
-	if m.state == "prompt" {
-		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar + "\n\nContinue? (y/n)"
+	if m.awaitingInput != "" {
+		prompt := fmt.Sprintf("Add more sessions? Current input: %s (press Enter to confirm)", m.awaitingInput)
+		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar + "\n\n" + prompt
+	} else if m.state == "prompt" {
+		content = "All sessions complete!\n\nHow many additional sessions? (0 to quit, or enter a number):"
 	} else {
 		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar + "\n\n" + commands
 	}
+
 	return lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).

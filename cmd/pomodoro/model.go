@@ -8,14 +8,18 @@ import (
 )
 
 type Model struct {
-	workDuration  time.Duration
-	breakDuration time.Duration
-	session       int
-	phase         string // "work" or "break"
-	state         string // "running" or "prompt"
-	width         int
-	height        int
-	timer         *timer.PomoTimer
+	workDuration      time.Duration
+	breakDuration     time.Duration
+	longBreakDuration time.Duration
+	timer             *timer.PomoTimer
+	totalSessions     int
+	session           int
+	width             int
+	height            int
+	cycleCount        int    // tracks pomodori
+	phase             string // "work" or "break"
+	state             string // "running" or "prompt"
+	awaitingInput     string
 }
 
 type tickMsg time.Time
