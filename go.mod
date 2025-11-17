@@ -1,6 +1,6 @@
 module github.com/aileks/pomodoro-timer
 
-go 1.25.4
+go 1.23
 
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
