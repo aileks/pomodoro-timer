@@ -2,6 +2,8 @@
 
 A terminal-based Pomodoro timer built in Go and a TUI built with [bubbletea](https://github.com/charmbracelet/bubbletea).
 
+![Screenshot](./docs/pomo.png)
+
 ## Features
 
 - **Customizable durations** - Set work, break, and long break times
