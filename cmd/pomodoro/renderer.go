@@ -49,7 +49,8 @@ func (r Renderer) WidthForScale(timeStr string, scale int) int {
 			}
 		}
 		if ch == ':' {
-			width += 1
+			cw, _ := colonSize(scale)
+			width += cw
 			prevColon = true
 			continue
 		}
@@ -102,7 +103,9 @@ func (r Renderer) Render(timeStr string, maxWidth int) RenderedBlock {
 }
 
 func digitSize(scale int) (int, int) {
-	h := scale + 1
-	v := scale
-	return h + 2, 2*v + 3
+	return baseDigitWidth * scale, baseDigitHeight * scale
+}
+
+func colonSize(scale int) (int, int) {
+	return baseColonWidth * scale, baseDigitHeight * scale
 }

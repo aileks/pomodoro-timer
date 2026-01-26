@@ -32,7 +32,7 @@ func (m *Model) View() string {
 
 	availableWidth := 0
 	if m.width > 0 {
-		availableWidth = m.width - 8
+		availableWidth = m.width - 6
 	}
 	renderer := NewRenderer()
 	block := renderer.Render(remaining, availableWidth)
@@ -53,18 +53,18 @@ func (m *Model) View() string {
 	elapsed := total - int64(m.timer.Remaining())
 	progressPercent := float64(elapsed) / float64(total)
 
-	barWidth := 32
-	if m.width > 0 {
-		barWidth = clampInt(m.width-24, 12, 44)
+	barWidth := block.Width
+	if barWidth > 2 {
+		barWidth -= 2
 	}
 	filledWidth := int(float64(barWidth) * progressPercent)
 	var bar strings.Builder
 	bar.WriteString("[")
 	for i := 0; i < barWidth; i++ {
 		if i < filledWidth {
-			bar.WriteString(ui.ProgressFill(accent).Render("█"))
+			bar.WriteString(ui.ProgressFill(accent).Bold(true).Render("█"))
 		} else {
-			bar.WriteString(ui.ProgressTrack.Render("░"))
+			bar.WriteString(ui.ProgressTrack.Render("·"))
 		}
 	}
 	bar.WriteString("]")
