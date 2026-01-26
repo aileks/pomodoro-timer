@@ -46,14 +46,39 @@ func parseSessionCount(s string) int {
 	return count
 }
 
+func trimLastRune(s string) string {
+	if s == "" {
+		return s
+	}
+	runes := []rune(s)
+	return string(runes[:len(runes)-1])
+}
+
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.awaitingInput != "" {
+		if m.state == "prompt" || m.awaitingInput != "" {
 			// Collecting additional sessions input
 			switch msg.String() {
 			case "q":
 				return m, tea.Quit
+			case "enter":
+				if m.awaitingInput == "" {
+					return m, nil
+				}
+				if count := parseSessionCount(m.awaitingInput); count > 0 {
+					m.totalSessions += count
+					m.awaitingInput = ""
+					m.state = "running"
+					m.timer = timer.New(m.workDuration)
+					m.timer.Start()
+					return m, nil
+				}
+				if m.awaitingInput == "0" {
+					return m, tea.Quit
+				}
+			case "backspace", "ctrl+h", "delete":
+				m.awaitingInput = trimLastRune(m.awaitingInput)
 			default:
 				if msg.String() >= "0" && msg.String() <= "9" {
 					m.awaitingInput += msg.String()
@@ -63,18 +88,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "enter":
-			if m.awaitingInput != "" {
-				if count := parseSessionCount(m.awaitingInput); count > 0 {
-					m.totalSessions += count
-					m.awaitingInput = ""
-					m.state = "running"
-					m.timer = timer.New(m.workDuration)
-					m.timer.Start()
-				} else if m.awaitingInput == "0" {
-					return m, tea.Quit
-				}
-			}
 		case "p":
 			if m.state == "running" {
 				m.timer.Pause()
@@ -117,7 +130,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.phase = "work"
 				m.session++
 
-				if m.session > m.totalSessions {
+				if m.totalSessions > 0 && m.session > m.totalSessions {
 					m.state = "prompt"
 					m.awaitingInput = ""
 				} else {

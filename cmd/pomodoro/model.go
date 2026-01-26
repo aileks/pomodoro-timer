@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/aileks/pomodoro-timer/pkg/timer"
@@ -28,10 +29,11 @@ func (m *Model) Init() tea.Cmd {
 	m.timer = timer.New(m.workDuration)
 	m.timer.Start()
 
-	return tea.Batch(
-		tea.EnterAltScreen,
-		m.tickCmd(),
-	)
+	cmds := []tea.Cmd{m.tickCmd()}
+	if os.Getenv("TMUX") == "" {
+		cmds = append(cmds, tea.EnterAltScreen)
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m *Model) tickCmd() tea.Cmd {

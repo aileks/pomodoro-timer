@@ -38,7 +38,7 @@ go build -o pomodoro ./cmd/pomodoro
 pomodoro
 ```
 
-Runs with defaults: 25 min work, 5 min break, 20 min long break, 4 sessions.
+Runs with defaults: 25 min work, 5 min break, 15 min long break, 4 sessions.
 
 ### Custom Durations
 
@@ -58,4 +58,5 @@ pomodoro --work 30 --break 10 --long-break 20 --sessions 8
 - `p` - Pause timer
 - `r` - Resume timer
 - `q` - Quit
-- `y/n` - Continue or exit after all sessions complete
+- `0-9` - Add sessions after completion
+- `enter` - Confirm added sessions

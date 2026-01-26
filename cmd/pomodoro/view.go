@@ -8,54 +8,35 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func sevenSegmentDisplay(digit rune) []string {
-	segments := map[rune][]string{
-		'0': {" _  ", "| | ", "| | "},
-		'1': {"    ", "  | ", "  | "},
-		'2': {" _  ", " _| ", "|_  "},
-		'3': {" _  ", " _| ", " _| "},
-		'4': {"    ", "|_| ", "  | "},
-		'5': {" _  ", "|_  ", " _| "},
-		'6': {" _  ", "|_  ", "|_| "},
-		'7': {" _  ", "  | ", "  | "},
-		'8': {" _  ", "|_| ", "|_| "},
-		'9': {" _  ", "|_| ", " _| "},
-		':': {"  ", "• ", "• "},
+func clampInt(value int, min int, max int) int {
+	if value < min {
+		return min
 	}
-	if seg, ok := segments[digit]; ok {
-		return seg
+	if value > max {
+		return max
 	}
-	return []string{"   ", "   ", "   "}
-}
-
-func buildTimerDisplay(timeStr string, phase string) string {
-	var lines [3]string
-
-	for _, ch := range timeStr {
-		segs := sevenSegmentDisplay(ch)
-		for i := range 3 {
-			lines[i] += segs[i]
-		}
-	}
-
-	display := strings.Join(lines[:], "\n")
-
-	var color string
-	if phase == "work" {
-		color = "#f3b327"
-	} else {
-		color = "#27b8f3"
-	}
-
-	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color(color)).
-		Bold(true).
-		Render(display)
+	return value
 }
 
 func (m *Model) View() string {
+	ui := newTheme()
+
+	if m.timer == nil {
+		return ui.Muted.Render("Starting...")
+	}
+
 	remaining := timer.FormatDuration(m.timer.Remaining())
-	timerDisplay := buildTimerDisplay(remaining, m.phase)
+	longBreak := m.phase == "break" && m.cycleCount%4 == 0
+	accent := ui.AccentForPhase(m.phase, longBreak)
+
+	availableWidth := 0
+	if m.width > 0 {
+		availableWidth = m.width - 8
+	}
+	renderer := NewRenderer()
+	block := renderer.Render(remaining, availableWidth)
+	timerDisplay := strings.Join(block.Lines, "\n")
+	timerDisplay = ui.Timer.Copy().Foreground(accent).Render(timerDisplay)
 
 	var total int64
 	if m.phase == "work" {
@@ -71,53 +52,70 @@ func (m *Model) View() string {
 	elapsed := total - int64(m.timer.Remaining())
 	progressPercent := float64(elapsed) / float64(total)
 
-	barWidth := 50
+	barWidth := 32
+	if m.width > 0 {
+		barWidth = clampInt(m.width-24, 12, 44)
+	}
 	filledWidth := int(float64(barWidth) * progressPercent)
 	var bar strings.Builder
 	bar.WriteString("[")
-
 	for i := 0; i < barWidth; i++ {
 		if i < filledWidth {
-			ratio := float64(i) / float64(barWidth)
-			r := int(255 * (1 - ratio))
-			g := 0
-			b := int(255 * ratio)
-			color := fmt.Sprintf("#%02X%02X%02X", r, g, b)
-			segment := lipgloss.NewStyle().
-				Foreground(lipgloss.Color(color)).
-				Render("█")
-			bar.WriteString(segment)
+			bar.WriteString(ui.ProgressFill(accent).Render("█"))
 		} else {
-			bar.WriteString("░")
+			bar.WriteString(ui.ProgressTrack.Render("░"))
 		}
 	}
 	bar.WriteString("]")
 
-	status := m.state
-	if status == "paused" {
-		status = "[PAUSED]"
-	} else {
-		status = ""
+	status := ""
+	if m.state == "paused" {
+		status = "PAUSED"
 	}
 
-	header := fmt.Sprintf("Session: %d/%d | %s %s", m.session, m.totalSessions, strings.ToUpper(m.phase), status)
-
-	commands := "q: Quit | p: Pause | r: Resume"
-
-	var content string
-	if m.awaitingInput != "" {
-		prompt := fmt.Sprintf("Add more sessions? Current input: %s (press Enter to confirm)", m.awaitingInput)
-		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar.String() + "\n\n" + prompt
-	} else if m.state == "prompt" {
-		content = "All sessions complete!\n\nHow many additional sessions? (0 to quit, or enter a number):"
-	} else {
-		content = header + "\n\n" + timerDisplay + "\n\n\n" + bar.String() + "\n\n" + commands
+	phaseLabel := "BREAK"
+	if m.phase == "work" {
+		phaseLabel = "WORK"
+	}
+	if longBreak {
+		phaseLabel = "LONG BREAK"
 	}
 
-	return lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height).
-		Align(lipgloss.Center).
-		AlignVertical(lipgloss.Center).
-		Render(content)
+	sessionTotal := fmt.Sprintf("%d", m.totalSessions)
+	if m.totalSessions == 0 {
+		sessionTotal = "inf"
+	}
+
+	header := fmt.Sprintf("Session %d/%s  %s", m.session, sessionTotal, phaseLabel)
+	if status != "" {
+		header = fmt.Sprintf("%s  %s", header, status)
+	}
+
+	commands := ui.Command.Render("q quit  p pause  r resume")
+
+	mainBlock := strings.Join([]string{
+		ui.Header.Foreground(accent).Render(header),
+		"",
+		timerDisplay,
+		"",
+		bar.String(),
+		"",
+		commands,
+	}, "\n")
+
+	content := ui.PanelWithAccent(accent).Render(mainBlock)
+
+	if m.state == "prompt" {
+		promptHeader := ui.Prompt.Render("Add more sessions")
+		inputLine := ui.Muted.Render("Enter a number (0 to quit)")
+		entry := ui.Header.Render("> " + m.awaitingInput)
+		promptBlock := strings.Join([]string{promptHeader, "", inputLine, "", entry}, "\n")
+		content = ui.PanelWithAccent(accent).Render(promptBlock)
+	}
+
+	if m.width == 0 || m.height == 0 {
+		return content
+	}
+
+	return lipgloss.Place(m.height, m.width, lipgloss.Center, lipgloss.Center, content)
 }
