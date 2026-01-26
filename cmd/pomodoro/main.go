@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,6 +25,12 @@ func main() {
 		session:           1,
 		phase:             "work",
 		state:             "running",
+	}
+
+	if os.Getenv("DEBUG") == "1" {
+		if f, err := tea.LogToFile("pomodoro.log", "debug"); err == nil {
+			defer f.Close()
+		}
 	}
 
 	p := tea.NewProgram(&m)

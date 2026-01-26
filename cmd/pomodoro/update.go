@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"os/exec"
 	"runtime"
 
@@ -146,6 +148,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		if os.Getenv("DEBUG") == "1" {
+			log.Printf("window size: %dx%d", m.width, m.height)
+		}
 	}
 
 	return m, nil

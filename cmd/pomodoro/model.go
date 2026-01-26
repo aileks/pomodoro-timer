@@ -30,6 +30,9 @@ func (m *Model) Init() tea.Cmd {
 	m.timer.Start()
 
 	cmds := []tea.Cmd{m.tickCmd()}
+	if os.Getenv("NO_ALT_SCREEN") == "1" {
+		return tea.Batch(cmds...)
+	}
 	if os.Getenv("TMUX") == "" {
 		cmds = append(cmds, tea.EnterAltScreen)
 	}

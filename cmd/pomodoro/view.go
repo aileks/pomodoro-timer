@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aileks/pomodoro-timer/pkg/timer"
@@ -113,9 +114,9 @@ func (m *Model) View() string {
 		content = ui.PanelWithAccent(accent).Render(promptBlock)
 	}
 
-	if m.width == 0 || m.height == 0 {
+	if m.width == 0 || m.height == 0 || os.Getenv("DEBUG_NO_PLACE") == "1" {
 		return content
 	}
 
-	return lipgloss.Place(m.height, m.width, lipgloss.Center, lipgloss.Center, content)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }
